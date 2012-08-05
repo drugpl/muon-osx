@@ -5,37 +5,60 @@ class Muon
   include HotCocoa
 
   def start
-    application name: 'Muon' do |app|
-      app.delegate = self
-      window frame: [100, 100, 500, 500], title: 'Muon' do |win|
-        win << label(text: 'Hello from HotCocoa', layout: {start: false})
-        win.will_close { exit }
-      end
-    end
+    app = NSApplication.sharedApplication
+    app.delegate = self
+    initMenu
+    initStatusItem
+    initSleepNotifications
+    app.run
   end
 
-  # file/open
-  def on_open(menu)
+  def initMenu
+    @menu = NSMenu.new
+    @menu.initWithTitle 'FooApp'
+    mi = NSMenuItem.new
+    mi.title = 'Hellow from MacRuby!'
+    mi.action = 'sayHello:'
+    mi.target = self
+    @menu.addItem mi
+
+    # mi = NSMenuItem.new
+    # mi.title = 'Quit'
+    # mi.action = 'quit:'
+    # mi.target = self
+    # menu.addItem mi
   end
 
-  # file/new
-  def on_new(menu)
+  def initStatusItem
+    statusItem = NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
+    statusItem.setMenu @menu
+    statusItem.setTitle "Muon"
+    statusItem.setHighlightMode true
+    # img = NSImage.new.initWithContentsOfFile ''
+    # statusItem.setImage(img)
   end
 
-  # help menu item
-  def on_help(menu)
+  def sayHello(sender)
+    alert = NSAlert.new
+    alert.messageText = 'This is MacRuby Status Bar Application'
+    alert.informativeText = 'Cool, huh?'
+    alert.alertStyle = NSInformationalAlertStyle
+    alert.addButtonWithTitle("Yeah!")
+    response = alert.runModal
   end
 
-  # This is commented out, so the minimize menu item is disabled
-  #def on_minimize(menu)
-  #end
-
-  # window/zoom
-  def on_zoom(menu)
+  def initSleepNotifications
+    notificationCenter = NSWorkspace.sharedWorkspace.notificationCenter
+    notificationCenter.addObserver self, selector: :receiveSleepNote, name: NSWorkspaceWillSleepNotification, object: nil
+    notificationCenter.addObserver self, selector: :receiveWakeNote, name: NSWorkspaceDidWakeNotification, object: nil
   end
 
-  # window/bring_all_to_front
-  def on_bring_all_to_front(menu)
+  def receiveSleepNote
+    puts "sleepNote"
+  end
+
+  def receiveWakeNote
+    puts "wakeNote"
   end
 end
 
