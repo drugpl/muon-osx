@@ -1,4 +1,5 @@
 require 'muon/app'
+require 'muon/format'
 require 'muon/osx/project_monitor'
 require 'IdleTime'
 
@@ -6,8 +7,7 @@ module Muon
   module OSX
     class App
       IDLE_CHECK_INTERVAL = 5
-
-      include HotCocoa
+      IDLE_ALERT_THRESHOLD = 10
 
       def start
         app = NSApplication.sharedApplication
@@ -67,15 +67,19 @@ module Muon
       end
 
       def receiveSleepNote
-        puts "sleepNote"
+        @sleepedAt = Time.now
       end
 
       def receiveWakeNote
-        puts "wakeNote"
+        if hasActiveProjects?
+          displayWakeAlert(Time.now - @sleepedAt)
+        end
       end
 
       def receiveIdleNote(seconds)
-        puts "idle #{seconds}"
+        if hasActiveProjects? && seconds > IDLE_ALERT_THRESHOLD && ! @idleAlertDisplayed
+          displayIdleAlert(seconds)
+        end
       end
 
       def projectMonitorUpdated(project, i)
@@ -84,7 +88,12 @@ module Muon
       end
 
       def projectClicked(sender)
-        p @projects[sender.tag].path
+        project = @projects[sender.tag]
+        if project.tracking?
+          project.stop_tracking
+        else
+          project.start_tracking
+        end
       end
 
       def quit(sender)
@@ -92,7 +101,7 @@ module Muon
         app.terminate(self)
       end
 
-      protected
+      private
 
       def setMenuIcon
         @imgStopped ||= NSImage.alloc.initWithContentsOfFile(
@@ -100,11 +109,35 @@ module Muon
         @imgRunning ||= NSImage.alloc.initWithContentsOfFile(
           NSBundle.mainBundle.pathForResource("icon-running", ofType: "png"))
 
-        if @projects.any?(&:tracking?)
+        if hasActiveProjects?
           @statusItem.setImage(@imgRunning)
         else
           @statusItem.setImage(@imgStopped)
         end
+      end
+
+      def displayWakeAlert(sleepSeconds)
+        alert = NSAlert.new
+        alert.setInformativeText "Computer has been sleeping for #{Format.duration sleepSeconds}. Do you want to stop tracking time at the point computer was put to sleep?"
+        alert.addButtonWithTitle "Stop tracking time"
+        alert.addButtonWithTitle "Continue tracking"
+        result = alert.runModal
+        if result == NSAlertFirstButtonReturn
+          activeProjects.each { |project| project.stop_tracking(@sleepedAt) }
+        end
+      end
+
+      def displayIdleAlert(idleSeconds)
+        @idleAlertDisplayed = true
+        alert = NSAlert.new
+        alert.setMessageText "Computer has been idle for #{Format.duration idleSeconds}. Do you want to stop tracking at the point you stopped using the computer?"
+        alert.addButtonWithTitle "Stop tracking time"
+        alert.addButtonWithTitle "Continue tracking"
+        result = alert.runModal
+        if result == NSAlertFirstButtonReturn
+          activeProjects.each { |project| project.stop_tracking(@sleepedAt) }
+        end
+        @idleAlertDisplayed = false
       end
 
       def titleForProject(project)
@@ -113,6 +146,14 @@ module Muon
         else
           project.name
         end
+      end
+
+      def hasActiveProjects?
+        @projects.any?(&:tracking?)
+      end
+
+      def activeProjects
+        @projects.select(&:tracking?)
       end
     end
   end
