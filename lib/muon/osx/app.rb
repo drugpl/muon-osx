@@ -1,4 +1,5 @@
 require 'muon/app'
+require 'muon/osx/project_monitor'
 require 'IdleTime'
 
 module Muon
@@ -12,8 +13,7 @@ module Muon
         app = NSApplication.sharedApplication
         app.delegate = self
 
-        @projects = Muon::App.new("").global_projects
-
+        initProjects
         initMenu
         initStatusItem
         initSleepNotifications
@@ -22,12 +22,19 @@ module Muon
         app.run
       end
 
+      def initProjects
+        @projects = Muon::App.new("").global_projects
+        @projects.each_with_index do |project, i|
+          ProjectMonitor.new(project).startMonitoring { projectMonitorUpdated(project, i) }
+        end
+      end
+
       def initMenu
         @menu = NSMenu.new
-        @menu.initWithTitle 'FooApp'
+        @menu.initWithTitle "Muon"
 
         @projects.each_with_index do |project, i|
-          item = NSMenuItem.alloc.initWithTitle project.name, action: "projectClicked:", keyEquivalent: ""
+          item = NSMenuItem.alloc.initWithTitle titleForProject(project), action: "projectClicked:", keyEquivalent: ""
           item.tag = i
           @menu.addItem item
         end
@@ -37,21 +44,10 @@ module Muon
       end
 
       def initStatusItem
-        statusItem = NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
-        statusItem.setMenu @menu
-        statusItem.setTitle "Muon"
-        statusItem.setHighlightMode true
-        # img = NSImage.new.initWithContentsOfFile ''
-        # statusItem.setImage(img)
-      end
-
-      def sayHello(sender)
-        alert = NSAlert.new
-        alert.messageText = 'This is MacRuby Status Bar Application'
-        alert.informativeText = 'Cool, huh?'
-        alert.alertStyle = NSInformationalAlertStyle
-        alert.addButtonWithTitle("Yeah!")
-        response = alert.runModal
+        @statusItem = NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
+        @statusItem.setMenu @menu
+        @statusItem.setHighlightMode true
+        setMenuIcon
       end
 
       def initSleepNotifications
@@ -82,6 +78,11 @@ module Muon
         puts "idle #{seconds}"
       end
 
+      def projectMonitorUpdated(project, i)
+        @menu.itemWithTag(i).setTitle titleForProject(project)
+        setMenuIcon
+      end
+
       def projectClicked(sender)
         p @projects[sender.tag].path
       end
@@ -89,6 +90,29 @@ module Muon
       def quit(sender)
         app = NSApplication.sharedApplication
         app.terminate(self)
+      end
+
+      protected
+
+      def setMenuIcon
+        @imgStopped ||= NSImage.alloc.initWithContentsOfFile(
+          NSBundle.mainBundle.pathForResource("icon-stopped", ofType: "png"))
+        @imgRunning ||= NSImage.alloc.initWithContentsOfFile(
+          NSBundle.mainBundle.pathForResource("icon-running", ofType: "png"))
+
+        if @projects.any?(&:tracking?)
+          @statusItem.setImage(@imgRunning)
+        else
+          @statusItem.setImage(@imgStopped)
+        end
+      end
+
+      def titleForProject(project)
+        if project.tracking?
+          "#{project.name} (running)"
+        else
+          project.name
+        end
       end
     end
   end
