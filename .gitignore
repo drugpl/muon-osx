@@ -1,1 +1,4 @@
 Muon.app
+/ext/IdleTime.bundle
+/ext/IdleTime.o
+/ext/Makefile

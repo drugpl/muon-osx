@@ -1,7 +1,10 @@
 require 'rubygems' # disable this for a deployed application
 require 'hotcocoa'
+require File.dirname(__FILE__) + '/../ext/IdleTime'
 
 class Muon
+  IDLE_CHECK_INTERVAL = 5
+
   include HotCocoa
 
   def start
@@ -10,6 +13,7 @@ class Muon
     initMenu
     initStatusItem
     initSleepNotifications
+    initIdleNotifications
     app.run
   end
 
@@ -53,12 +57,26 @@ class Muon
     notificationCenter.addObserver self, selector: :receiveWakeNote, name: NSWorkspaceDidWakeNotification, object: nil
   end
 
+  def initIdleNotifications
+    Thread.new do
+      it = IdleTime.new
+      loop do
+        self.performSelectorOnMainThread 'receiveIdleNote:', withObject: it.secondsIdle, waitUntilDone: false
+        sleep IDLE_CHECK_INTERVAL
+      end
+    end
+  end
+
   def receiveSleepNote
     puts "sleepNote"
   end
 
   def receiveWakeNote
     puts "wakeNote"
+  end
+
+  def receiveIdleNote(seconds)
+    puts "idle #{seconds}"
   end
 end
 
