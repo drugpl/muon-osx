@@ -11,6 +11,7 @@ Application::Specification.new do |s|
   s.icon       = 'resources/HotCocoa.icns'
   s.resources  = Dir.glob('resources/**/*.*')
   s.sources    = Dir.glob('lib/**/*.rb') + Dir.glob('ext/*.bundle')
+  s.sources    += Dir.glob('/Users/janek/Code/open-source/muon-cli/lib/**/*.rb')
 
   # BridgeSupport is required if you need to run your app under OS X 10.6 (Snow Leopard)
   # set this option to false if you do not wish to embed the BridgeSupport files during deployment

@@ -2,7 +2,10 @@ require 'rubygems' # disable this for a deployed application
 require 'hotcocoa'
 require File.dirname(__FILE__) + '/../ext/IdleTime'
 
-class Muon
+$:.unshift ENV["MUON_LIB_DIR"] # remove this once muon gem is released
+require 'muon/app'
+
+class MuonOSX
   IDLE_CHECK_INTERVAL = 5
 
   include HotCocoa
@@ -10,27 +13,29 @@ class Muon
   def start
     app = NSApplication.sharedApplication
     app.delegate = self
+
+    @projects = Muon::App.new("").global_projects
+
     initMenu
     initStatusItem
     initSleepNotifications
     initIdleNotifications
+
     app.run
   end
 
   def initMenu
     @menu = NSMenu.new
     @menu.initWithTitle 'FooApp'
-    mi = NSMenuItem.new
-    mi.title = 'Hellow from MacRuby!'
-    mi.action = 'sayHello:'
-    mi.target = self
-    @menu.addItem mi
 
-    # mi = NSMenuItem.new
-    # mi.title = 'Quit'
-    # mi.action = 'quit:'
-    # mi.target = self
-    # menu.addItem mi
+    @projects.each_with_index do |project, i|
+      item = NSMenuItem.alloc.initWithTitle project.name, action: "projectClicked:", keyEquivalent: ""
+      item.tag = i
+      @menu.addItem item
+    end
+
+    @menu.addItem NSMenuItem.separatorItem
+    @menu.addItem NSMenuItem.alloc.initWithTitle "Quit", action: "quit:", keyEquivalent: ""
   end
 
   def initStatusItem
@@ -78,6 +83,15 @@ class Muon
   def receiveIdleNote(seconds)
     puts "idle #{seconds}"
   end
+
+  def projectClicked(sender)
+    p @projects[sender.tag].path
+  end
+
+  def quit(sender)
+    app = NSApplication.sharedApplication
+    app.terminate(self)
+  end
 end
 
-Muon.new.start
+MuonOSX.new.start
