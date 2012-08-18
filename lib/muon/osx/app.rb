@@ -7,7 +7,7 @@ module Muon
   module OSX
     class App
       IDLE_CHECK_INTERVAL = 5
-      IDLE_ALERT_THRESHOLD = 10
+      IDLE_ALERT_THRESHOLD = 5*60
 
       def start
         app = NSApplication.sharedApplication
@@ -121,6 +121,7 @@ module Muon
         alert.setInformativeText "Computer has been sleeping for #{Format.duration sleepSeconds}. Do you want to stop tracking time at the point computer was put to sleep?"
         alert.addButtonWithTitle "Stop tracking time"
         alert.addButtonWithTitle "Continue tracking"
+        NSApplication.sharedApplication.activateIgnoringOtherApps(true)
         result = alert.runModal
         if result == NSAlertFirstButtonReturn
           activeProjects.each { |project| project.stop_tracking(@sleepedAt) }
@@ -133,9 +134,11 @@ module Muon
         alert.setMessageText "Computer has been idle for #{Format.duration idleSeconds}. Do you want to stop tracking at the point you stopped using the computer?"
         alert.addButtonWithTitle "Stop tracking time"
         alert.addButtonWithTitle "Continue tracking"
+        NSApplication.sharedApplication.activateIgnoringOtherApps(true)
         result = alert.runModal
         if result == NSAlertFirstButtonReturn
-          activeProjects.each { |project| project.stop_tracking(@sleepedAt) }
+          # TODO fix time passed to stop_tracking!
+          activeProjects.each { |project| project.stop_tracking }
         end
         @idleAlertDisplayed = false
       end
