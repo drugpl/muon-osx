@@ -17,7 +17,7 @@ Application::Specification.new do |s|
   # (i.e. you are targeting Lion only)
   # Information about BridgeSupport: http://www.macruby.org/documentation/tutorial.html
   # Latest Preview of BridgeSupport: http://www.macruby.org/files/BridgeSupport%20Preview%203.zip
-  s.embed_bridgesupport = true
+  s.embed_bridgesupport = false
 
   # optional copyright
   # s.copyright = "2011, Your Company"
@@ -32,7 +32,7 @@ Application::Specification.new do |s|
 
   # specify which gems you wish to be bundled with your application
   # hotcocoa is automatically bundled and doesn't need to be specified here
-  # s.gems     = ['rest-client']
+  s.gems     = ['muon']
 
   # uncomment to always make a clean build of the app
   # s.overwrite = true

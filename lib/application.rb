@@ -3,7 +3,7 @@ require 'hotcocoa'
 
 $:.unshift File.dirname(__FILE__)
 $:.unshift File.expand_path('../../ext', __FILE__)
-$:.unshift ENV["MUON_LIB_DIR"] # remove this once muon gem is released
+$:.unshift ENV["MUON_LIB_DIR"] unless ENV["MUON_LIB_DIR"].nil?
 
 require 'muon/osx/app'
 
